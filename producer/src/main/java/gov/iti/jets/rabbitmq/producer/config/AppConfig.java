@@ -1,4 +1,4 @@
-package gov.iti.jets.rabbitmq.producer;
+package gov.iti.jets.rabbitmq.producer.config;
 
 
 import org.springframework.amqp.core.Binding;

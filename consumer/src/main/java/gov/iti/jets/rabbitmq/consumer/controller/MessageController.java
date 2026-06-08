@@ -1,5 +1,6 @@
-package gov.iti.jets.rabbitmq.consumer;
+package gov.iti.jets.rabbitmq.consumer.controller;
 
+import gov.iti.jets.rabbitmq.consumer.listener.MessageListener;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

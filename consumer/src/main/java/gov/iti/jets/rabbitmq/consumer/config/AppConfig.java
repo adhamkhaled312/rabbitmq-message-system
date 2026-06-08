@@ -1,4 +1,4 @@
-package gov.iti.jets.rabbitmq.consumer;
+package gov.iti.jets.rabbitmq.consumer.config;
 
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.core.Binding;

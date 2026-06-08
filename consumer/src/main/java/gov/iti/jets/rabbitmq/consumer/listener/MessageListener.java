@@ -1,4 +1,4 @@
-package gov.iti.jets.rabbitmq.consumer;
+package gov.iti.jets.rabbitmq.consumer.listener;
 
 
 import org.springframework.amqp.rabbit.annotation.RabbitListener;

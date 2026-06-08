@@ -1,4 +1,4 @@
-package gov.iti.jets.rabbitmq.producer;
+package gov.iti.jets.rabbitmq.producer.controller;
 
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
