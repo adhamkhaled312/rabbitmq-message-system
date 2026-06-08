@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RabbitMQ Messenger</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+
+    h1,
+    h2 {
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #ddd;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+    }
+
+    button {
+      padding: 10px 15px;
+      cursor: pointer;
+    }
+
+    .status {
+      margin-top: 10px;
+    }
+
+    .ok {
+      color: green;
+    }
+
+    .err {
+      color: red;
+    }
+
+    .messages-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #messageList {
+      list-style: none;
+      padding: 0;
+    }
+
+    #messageList li {
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin-top: 5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .msg-time {
+      color: gray;
+      font-size: 0.8em;
+    }
+
+    .auto-row {
+      margin-top: 15px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>RabbitMQ Messenger</h1>
+    <p class="arch">Frontend → Producer :8081 → RabbitMQ → Consumer :8082</p>
+  </header>
+
+  <div class="container">
+
+    <!-- SEND -->
+    <div class="card">
+      <h2>Send Message</h2>
+      <div class="input-row">
+        <input type="text" id="msgInput" placeholder="Type a message…" maxlength="500" />
+        <button id="sendBtn" onclick="sendMessage()">Send</button>
+      </div>
+      <div class="status" id="sendStatus"></div>
+    </div>
+
+    <!-- RECEIVE -->
+    <div class="card">
+      <div class="messages-header">
+        <h2>Received Messages</h2>
+        <button class="refresh-btn" onclick="loadMessages()">↻ Refresh</button>
+      </div>
+      <ul id="messageList">
+        <li class="empty">No messages yet.</li>
+      </ul>
+      <div class="auto-row">
+        <label>
+          <input type="checkbox" id="autoRefresh" onchange="toggleAuto()">
+          Auto Refresh
+        </label>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const PRODUCER = 'http://localhost:8081';
+    const CONSUMER = 'http://localhost:8082';
+    let autoTimer = null;
+
+    const input = document.getElementById('msgInput');
+    const sendStatus = document.getElementById('sendStatus');
+    const list = document.getElementById('messageList');
+
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+    async function sendMessage() {
+      const content = input.value.trim();
+      if (!content) return;
+
+      const btn = document.getElementById('sendBtn');
+      btn.disabled = true;
+      setStatus('sendStatus', '', '');
+
+      try {
+        const res = await fetch(`${PRODUCER}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content })
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        setStatus('sendStatus', '✓ Message sent', 'ok');
+        input.value = '';
+        setTimeout(loadMessages, 400);
+      } catch (err) {
+        setStatus('sendStatus', `✗ Failed: ${err.message}`, 'err');
+      } finally {
+        btn.disabled = false;
+        input.focus();
+      }
+    }
+
+    async function loadMessages() {
+      try {
+        const res = await fetch(`${CONSUMER}/messages`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        renderMessages(data);
+      } catch (err) {
+        list.innerHTML = `<li class="empty" style="color:#f87171">✗ Cannot reach consumer: ${err.message}</li>`;
+      }
+    }
+
+    function renderMessages(data) {
+      if (!data.length) {
+        list.innerHTML = '<li class="empty">No messages yet.</li>';
+        return;
+      }
+      list.innerHTML = [...data].reverse().map(m => `
+      <li>
+        <span class="msg-content">${escHtml(m.content)}</span>
+        <span class="msg-time">${m.receivedAt ?? ''}</span>
+      </li>`).join('');
+    }
+
+    function toggleAuto() {
+      const on = document.getElementById('autoRefresh').checked;
+      clearInterval(autoTimer);
+      if (on) { loadMessages(); autoTimer = setInterval(loadMessages, 2000); }
+    }
+
+    function setStatus(id, text, cls) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.className = 'status ' + cls;
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    loadMessages();
+  </script>
+
+</body>
+
+</html>
